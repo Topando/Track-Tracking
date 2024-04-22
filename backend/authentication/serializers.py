@@ -1,7 +1,9 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from userprofile.models import ConfirmEmailUser
 
 from .utils import *
 
@@ -26,8 +28,11 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         user.is_active = False
         user.save()
 
-        send_confirmation_email(user, self.context['request'])
-        return user
+        code = create_token_check_email(user)
+        if send_confirmation_email(user, code):
+            return encode_user(user)
+        else:
+            return None
 
     def validate_password(self, value):
         try:
@@ -66,3 +71,21 @@ class LoginSerializer(serializers.Serializer):
         if user and user.is_active:
             return user
         raise serializers.ValidationError("Invalid Details.")
+
+
+class ConfirmEmailSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    uid = serializers.CharField()
+    code = serializers.IntegerField()
+
+    def save(self, **kwargs):
+        token = self.validated_data.get('token')
+        uid = self.validated_data.get('uid')
+        code = self.validated_data.get('code')
+        user = get_user_by_token_email(token, uid)
+        if user is not None:
+            confirm = ConfirmEmailUser.objects.filter(user=user, code=code).first()
+            if confirm:
+                confirm.delete()
+                return user
+        return None
