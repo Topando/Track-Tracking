@@ -13,7 +13,6 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-Сайт доступен
 
 ## Консольный функционал
 ### Установка зависимостей для backend
