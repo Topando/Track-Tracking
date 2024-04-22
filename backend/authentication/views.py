@@ -1,5 +1,5 @@
 from knox.models import AuthToken
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,24 +14,28 @@ class RegisterUserView(CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response("Ok")
+        token, uid = serializer.save()
+        return Response({
+            'token': token,
+            'uid': uid,
+        }, status=status.HTTP_201_CREATED)
 
 
 class CheckEmailView(APIView):
     def get(self, request, *args, **kwargs):
-        uidb64 = kwargs['uidb64']
-        token = kwargs['token']
-        user = get_user_by_token_email(uidb64, token)
-        if user:
+        token = kwargs.get('token')
+        uid = kwargs.get('uid')
+        code = kwargs.get('code')
+
+        serializer = ConfirmEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user is not None:
             return Response({
                 "user": UserSerializer(user).data,
                 "token": AuthToken.objects.create(user)[1],
             })
-        else:
-            return Response(
-                "Not found"
-            )
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginUserView(generics.GenericAPIView):
