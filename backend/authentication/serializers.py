@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from userprofile.models import ConfirmEmailUser
 
 from .utils import *
-from userprofile.models import ConfirmEmailUser
 
 User = get_user_model()
 
