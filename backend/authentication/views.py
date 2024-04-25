@@ -1,7 +1,7 @@
 from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from knox.models import AuthToken
 from rest_framework import generics, status
-from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 

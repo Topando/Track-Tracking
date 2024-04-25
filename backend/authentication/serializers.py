@@ -1,6 +1,5 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from userprofile.models import ConfirmEmailUser
@@ -11,6 +10,9 @@ User = get_user_model()
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(max_length=30, min_length=5)
+    email = serializers.EmailField()
+
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password')
@@ -18,6 +20,20 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'id': {'read_only': True}
         }
+
+    def validate_username(self, value):
+        value = serializers.CharField().to_internal_value(value)
+        user = User.objects.filter(username=value).first()
+        if user is not None and not user.is_active:
+            user.delete()
+        return value
+
+    def validate_email(self, value):
+        value = serializers.EmailField().to_internal_value(value)
+        user = User.objects.filter(email=value).first()
+        if user is not None and not user.is_active:
+            user.delete()
+        return value
 
     def save(self, **kwargs):
         user = User.objects.create_user(
