@@ -33,6 +33,15 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         user = User.objects.filter(email=value).first()
         if user is not None and not user.is_active:
             user.delete()
+        elif user is not None and user.is_active:
+            raise serializers.ValidationError("Email already registered")
+        return value
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except ValidationError as exc:
+            raise serializers.ValidationError(str(exc))
         return value
 
     def save(self, **kwargs):
@@ -49,13 +58,6 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             return encode_user(user)
         else:
             return None
-
-    def validate_password(self, value):
-        try:
-            validate_password(value)
-        except ValidationError as exc:
-            raise serializers.ValidationError(str(exc))
-        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -100,8 +102,23 @@ class ConfirmEmailSerializer(serializers.Serializer):
         code = self.validated_data.get('code')
         user = get_user_by_token_email(token, uid)
         if user is not None:
-            confirm = ConfirmEmailUser.objects.filter(user=user, code=code).first()
+            confirm = ConfirmEmailUser.objects.filter(user=user, code=code).last()
             if confirm:
                 confirm.delete()
                 return user
         return None
+
+
+class RepeatConfirmEmailSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    uid = serializers.CharField()
+
+    def save(self, **kwargs):
+        token = self.validated_data.get('token')
+        uid = self.validated_data.get('uid')
+        user = get_user_by_token_email(token, uid)
+        if user is not None:
+            code = create_token_check_email(user)
+            if send_confirmation_email(user, code):
+                return True
+        return False

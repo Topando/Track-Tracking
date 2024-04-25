@@ -24,6 +24,7 @@ def send_confirmation_email(user, code):
 
 
 def create_token_check_email(user):
+    ConfirmEmailUser.objects.filter(user=user).delete()
     code = random.randint(10_000, 99_999)
     ConfirmEmailUser.objects.create(
         user=user,

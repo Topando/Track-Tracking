@@ -67,7 +67,7 @@ class CheckEmailView(APIView):
             400: 'Неверные данные'
         }
     )
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         serializer = ConfirmEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -113,3 +113,27 @@ class LoginUserView(generics.GenericAPIView):
             "user": UserSerializer(user).data,
             "token": AuthToken.objects.create(user)[1]
         })
+
+
+class RepeatConfirmationEmailView(APIView):
+    serializer_class = RepeatConfirmEmailSerializer
+
+    @swagger_auto_schema(
+        operation_description="Повторная отправка кода на email",
+        manual_parameters=[
+            openapi.Parameter('token', in_=openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                              description='Токен пользователя'),
+            openapi.Parameter('uid', in_=openapi.IN_QUERY, type=openapi.TYPE_STRING,
+                              description='Идентификатор пользователя'),
+        ],
+        responses={
+            200: 'OK',
+            400: 'Неверные данные'
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        if serializer.save():
+            return Response(status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
